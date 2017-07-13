@@ -1301,6 +1301,7 @@ retry:
 	}
 
 	if (pos->packet_size == 0 || pos->offset == EOF) {
+		(void) poll(NULL, 0, ACTIVE_POLL_DELAY);
 		goto end;
 	}
 
