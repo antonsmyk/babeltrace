@@ -37,20 +37,18 @@
 # endif
 #endif
 
-#if defined(MSG_NOSIGNAL)
-static inline
-ssize_t bt_send_nosigpipe(int fd, const void *buffer, size_t size)
-{
-	return send(fd, buffer, size, MSG_NOSIGNAL);
-}
-#else
-
+#if !defined(MSG_NOSIGNAL)
 #include <signal.h>
+#endif /* !MSG_NOSIGNAL */
+
+#include <sys/uio.h>
 
 static inline
-ssize_t bt_send_nosigpipe(int fd, const void *buffer, size_t size)
+ssize_t bt_writev_nosigpipe(int fd, const struct iovec *iov, int iovcnt)
 {
 	ssize_t sent;
+
+#if !defined(MSG_NOSIGNAL)
 	int saved_err;
 	sigset_t sigpipe_set, pending_set, old_set;
 	int sigpipe_was_pending;
@@ -88,9 +86,12 @@ ssize_t bt_send_nosigpipe(int fd, const void *buffer, size_t size)
 			return -1;
 		}
 	}
+#endif /* !MSG_NOSIGNAL */
 
-	/* Send and save errno. */
-	sent = send(fd, buffer, size, 0);
+	/* const cast iovec argument */
+	sent = writev(fd, (struct iovec *) iov, iovcnt);
+
+#if !defined(MSG_NOSIGNAL)
 	saved_err = errno;
 
 	if (sent == -1 && errno == EPIPE && !sigpipe_was_pending) {
@@ -109,9 +110,9 @@ ssize_t bt_send_nosigpipe(int fd, const void *buffer, size_t size)
 	}
 	/* Restore send() errno */
 	errno = saved_err;
+#endif /* !MSG_NOSIGNAL */
 
 	return sent;
 }
-#endif
 
 #endif /* _BABELTRACE_COMPAT_SEND_H */
