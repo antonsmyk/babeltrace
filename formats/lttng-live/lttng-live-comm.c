@@ -358,6 +358,10 @@ int lttng_live_list_sessions(struct lttng_live_ctx *ctx, const char *path)
 		fprintf(stderr, "[error] Remote side has closed connection\n");
 		goto error;
 	}
+	if (ret_len < 0) {
+		perror("[error] Error receiving session list");
+		goto error;
+	}
 	assert(ret_len == sizeof(list));
 
 	sessions_count = be32toh(list.sessions_count);
